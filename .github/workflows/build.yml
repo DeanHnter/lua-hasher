@@ -26,14 +26,14 @@ jobs:
     - name: Setup Lua environment
       run: |
         if [[ "${{ matrix.lua-version }}" == "5.1" ]]; then
-          export LUAINC=/usr/local/include/lua5.1
-          export LUAEXE=lua5.1
+          echo "LUAINC=/usr/local/include/lua5.1" >> $GITHUB_ENV
+          echo "LUAEXE=lua5.1" >> $GITHUB_ENV
         elif [[ "${{ matrix.lua-version }}" == "jit" ]]; then
-          export LUAINC=/usr/local/include/luajit-2.1
-          export LUAEXE=luajit
+          echo "LUAINC=/usr/local/include/luajit-2.1" >> $GITHUB_ENV
+          echo "LUAEXE=luajit" >> $GITHUB_ENV
         else # Assuming the default case is lua 5.3, adjust as necessary
-          export LUAINC=/usr/local/include/lua5.3
-          export LUAEXE=lua
+          echo "LUAINC=/usr/local/include/lua5.3" >> $GITHUB_ENV
+          echo "LUAEXE=lua" >> $GITHUB_ENV
         fi
         
     - name: Run Make and tests
