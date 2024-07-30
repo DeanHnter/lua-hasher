@@ -7,7 +7,7 @@ jobs:
     runs-on: macos-latest # Specifies the runner environment
     strategy:
       matrix:
-        lua-version: ['5.1', '5.3', 'jit'] # Specifies Lua versions of interest
+        lua-version: ['5.3', 'jit'] # Specifies Lua versions of interest
     steps:
     - uses: actions/checkout@v3 # Checks out your repository under $GITHUB_WORKSPACE, so the job can access it
     
