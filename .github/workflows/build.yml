@@ -42,3 +42,11 @@ jobs:
         make clean
         make -e
         make test -e
+
+    - name: Publish Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: lua-build-artifacts
+        path: |
+          **/*.so
+        if-no-files-found: error
