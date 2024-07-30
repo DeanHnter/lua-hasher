@@ -44,9 +44,9 @@ jobs:
 
     - name: Zip Lua build artifacts
       run: |
-        zip -r lua-${{ matrix.lua-version }}-macos-latest.zip **/*.so
+        find . -name "*.so" | xargs zip lua-${{ matrix.lua-version }}-macos-latest.zip
       shell: bash
-
+  
     - name: Archive Lua build artifacts
       uses: actions/upload-artifact@v3
       with:
