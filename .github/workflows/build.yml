@@ -42,12 +42,17 @@ jobs:
         make -e
         make test -e
 
+    - name: Zip Lua build artifacts
+      run: |
+        zip -r lua-${{ matrix.lua-version }}-macos-latest.zip **/*.so
+      shell: bash
+
     - name: Archive Lua build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: lua-build-artifacts
+        name: lua-${{ matrix.lua-version }}-macos-latest.zip
         path: |
-          **/*.so
+          **/*.zip
         if-no-files-found: error
         
     - name: Create Release
@@ -64,8 +69,7 @@ jobs:
     - name: Upload Release Asset
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          **/*.so
+        files: lua-${{ matrix.lua-version }}-macos-latest.zip
         token: ${{ secrets.GITHUB_TOKEN }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
