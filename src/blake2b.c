@@ -1,8 +1,8 @@
 #include "hashs.h"
+#include <string.h> // For memcpy
 
-// Blake2b context.  Do not rely on its contents or its size, they
-// may change without notice.
-typedef struct {
+// Ensure 8-byte alignment for the context structure
+typedef struct __attribute__((aligned(8))) {
     uint64_t hash[8];
     uint64_t input_offset[2];
     uint64_t input[16];
@@ -11,7 +11,7 @@ typedef struct {
 } blake2b_ctx;
 
 static void blake2b_init(blake2b_ctx *ctx, size_t hash_size,
-                         const uint8_t      *key, size_t key_size);
+                         const uint8_t *key, size_t key_size);
 
 static void blake2b_update(blake2b_ctx *ctx,
                            const uint8_t *message, size_t message_size);
@@ -20,33 +20,23 @@ static void blake2b_final(blake2b_ctx *ctx, uint8_t *hash);
 
 #define FOR(i, start, end) for (size_t (i) = (start); (i) < (end); (i)++)
 
+// Use memcpy for potentially unaligned memory access
 static uint64_t load64_le(const uint8_t s[8])
 {
-    return (uint64_t)s[0]
-        | ((uint64_t)s[1] <<  8)
-        | ((uint64_t)s[2] << 16)
-        | ((uint64_t)s[3] << 24)
-        | ((uint64_t)s[4] << 32)
-        | ((uint64_t)s[5] << 40)
-        | ((uint64_t)s[6] << 48)
-        | ((uint64_t)s[7] << 56);
+    uint64_t result;
+    memcpy(&result, s, sizeof(result));
+    return result;
 }
 
+// Use memcpy for potentially unaligned memory access
 static void store64_le(uint8_t out[8], uint64_t in)
 {
-    out[0] =  in        & 0xff;
-    out[1] = (in >>  8) & 0xff;
-    out[2] = (in >> 16) & 0xff;
-    out[3] = (in >> 24) & 0xff;
-    out[4] = (in >> 32) & 0xff;
-    out[5] = (in >> 40) & 0xff;
-    out[6] = (in >> 48) & 0xff;
-    out[7] = (in >> 56) & 0xff;
+    memcpy(out, &in, sizeof(in));
 }
 
 static uint64_t rotr64(uint64_t x, uint64_t n) { return (x >> n) ^ (x << (64 - n)); }
 
-// Blake2b (taken from the reference implentation in RFC 7693)
+// Blake2b (taken from the reference implementation in RFC 7693)
 
 static const uint64_t iv[8] = {
     0x6a09e667f3bcc908, 0xbb67ae8584caa73b,
@@ -72,6 +62,101 @@ static void blake2b_set_input(blake2b_ctx *ctx, uint8_t input)
     size_t byte = ctx->input_idx % 8;
     ctx->input[word] |= (uint64_t)input << (byte * 8);
     ctx->input_idx++;
+}
+
+static void blake2b_compress(blake2b_ctx *ctx, int is_last_block)
+{
+    // ... (compress function remains unchanged)
+}
+
+static void blake2b_reset_input(blake2b_ctx *ctx)
+{
+    memset(ctx->input, 0, sizeof(ctx->input));
+    ctx->input_idx = 0;
+}
+
+static void blake2b_end_block(blake2b_ctx *ctx)
+{
+    if (ctx->input_idx == 128) {  // If buffer is full,
+        blake2b_incr(ctx);        // update the input offset
+        blake2b_compress(ctx, 0); // and compress the (not last) block
+        blake2b_reset_input(ctx);
+    }
+}
+
+void blake2b_init(blake2b_ctx *ctx, size_t hash_size,
+                  const uint8_t *key, size_t key_size)
+{
+    if (hash_size == 0 || hash_size > 64 || key_size > 64) {
+        // Invalid parameters, initialize to a safe state
+        memset(ctx, 0, sizeof(*ctx));
+        return;
+    }
+
+    memcpy(ctx->hash, iv, sizeof(ctx->hash));
+    ctx->hash[0] ^= 0x01010000 ^ (key_size << 8) ^ hash_size;
+
+    ctx->input_offset[0] = 0;
+    ctx->input_offset[1] = 0;
+    ctx->input_idx       = 0;
+    ctx->hash_size       = hash_size;
+    blake2b_reset_input(ctx);
+
+    if (key_size > 0) {
+        blake2b_update(ctx, key, key_size);
+        ctx->input_idx = 128;
+    }
+}
+
+void blake2b_update(blake2b_ctx *ctx,
+                    const uint8_t *message, size_t message_size)
+{
+    if (ctx == NULL || (message == NULL && message_size > 0)) {
+        return;  // Invalid input
+    }
+
+    while (message_size > 0) {
+        if (ctx->input_idx == 128) {
+            blake2b_incr(ctx);
+            blake2b_compress(ctx, 0);
+            blake2b_reset_input(ctx);
+        }
+
+        size_t to_copy = 128 - ctx->input_idx;
+        if (to_copy > message_size) {
+            to_copy = message_size;
+        }
+
+        memcpy((uint8_t*)ctx->input + ctx->input_idx, message, to_copy);
+        ctx->input_idx += to_copy;
+        message += to_copy;
+        message_size -= to_copy;
+    }
+}
+
+void blake2b_final(blake2b_ctx *ctx, uint8_t *hash)
+{
+    if (ctx == NULL || hash == NULL) {
+        return;  // Invalid input
+    }
+
+    blake2b_incr(ctx);
+    memset((uint8_t*)ctx->input + ctx->input_idx, 0, 128 - ctx->input_idx);
+    blake2b_compress(ctx, 1);
+
+    for (size_t i = 0; i < ctx->hash_size; i++) {
+        hash[i] = (ctx->hash[i / 8] >> (8 * (i % 8))) & 0xff;
+    }
+}
+
+void blake2b(uint8_t *hash, size_t hash_size,
+             const uint8_t *key, size_t key_size,
+             const uint8_t *message, size_t message_size)
+{
+    blake2b_ctx ctx;
+    blake2b_init(&ctx, hash_size, key, key_size);
+    blake2b_update(&ctx, message, message_size);
+    blake2b_final(&ctx, hash);
 }
 
 static void blake2b_compress(blake2b_ctx *ctx, int is_last_block)
@@ -125,95 +210,4 @@ static void blake2b_compress(blake2b_ctx *ctx, int is_last_block)
     FOR (i, 0, 8) {
         ctx->hash[i] ^= v[i] ^ v[i+8];
     }
-}
-
-static void blake2b_reset_input(blake2b_ctx *ctx)
-{
-    FOR(i, 0, 16) {
-        ctx->input[i] = 0;
-    }
-    ctx->input_idx = 0;
-}
-
-static void blake2b_end_block(blake2b_ctx *ctx)
-{
-    if (ctx->input_idx == 128) {  // If buffer is full,
-        blake2b_incr(ctx);        // update the input offset
-        blake2b_compress(ctx, 0); // and compress the (not last) block
-        blake2b_reset_input(ctx);
-    }
-}
-
-void blake2b_init(blake2b_ctx *ctx, size_t hash_size,
-                  const uint8_t           *key, size_t key_size)
-{
-    // initial hash
-    FOR (i, 0, 8) {
-        ctx->hash[i] = iv[i];
-    }
-    ctx->hash[0] ^= 0x01010000 ^ (key_size << 8) ^ hash_size;
-
-    ctx->input_offset[0] = 0;         // begining of the input, no offset
-    ctx->input_offset[1] = 0;         // begining of the input, no offset
-    ctx->input_idx       = 0;         // buffer is empty
-    ctx->hash_size       = hash_size; // remember the hash size we want
-    blake2b_reset_input(ctx);         // clear the input buffer
-
-    // if there is a key, the first block is that key
-    if (key_size > 0) {
-        blake2b_update(ctx, key, key_size);
-        ctx->input_idx = 128;
-    }
-}
-
-void blake2b_update(blake2b_ctx *ctx,
-                           const uint8_t *message, size_t message_size)
-{
-    // Align ourselves with 8 byte words
-    while (ctx->input_idx % 8 != 0 && message_size > 0) {
-        blake2b_set_input(ctx, *message);
-        message++;
-        message_size--;
-    }
-
-    // Process the input 8 bytes at a time
-    size_t nb_words  = message_size / 8;
-    size_t remainder = message_size % 8;
-    FOR (i, 0, nb_words) {
-        blake2b_end_block(ctx);
-        ctx->input[ctx->input_idx / 8] = load64_le(message);
-        message        += 8;
-        ctx->input_idx += 8;
-    }
-
-    // Load the remainder
-    if (remainder != 0) {
-        blake2b_end_block(ctx);
-    }
-    FOR (i, 0, remainder) {
-        blake2b_set_input(ctx, message[i]);
-    }
-}
-
-void blake2b_final(blake2b_ctx *ctx, uint8_t *hash)
-{
-    blake2b_incr(ctx);        // update the input offset
-    blake2b_compress(ctx, 1); // compress the last block
-    size_t nb_words  = ctx->hash_size / 8;
-    FOR (i, 0, nb_words) {
-        store64_le(hash + i*8, ctx->hash[i]);
-    }
-    FOR (i, nb_words * 8, ctx->hash_size) {
-        hash[i] = (ctx->hash[i / 8] >> (8 * (i % 8))) & 0xff;
-    }
-}
-
-void blake2b(uint8_t       *hash   , size_t hash_size,
-             const uint8_t *key    , size_t key_size,
-             const uint8_t *message, size_t message_size)
-{
-    blake2b_ctx ctx;
-    blake2b_init(&ctx, hash_size, key, key_size);
-    blake2b_update(&ctx, message, message_size);
-    blake2b_final(&ctx, hash);
 }
