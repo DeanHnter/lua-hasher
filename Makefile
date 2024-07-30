@@ -1,4 +1,3 @@
-LUAINC=$(find /usr /usr/local \( -type d -name 'lua*5.3*' \) -print 2>/dev/null | head -n 1)/include
 LUAEXE=lua
 CC=gcc -std=c99
 CFLAGS=-Wall -Wextra -O2 -I$(LUAINC) -I./src/
