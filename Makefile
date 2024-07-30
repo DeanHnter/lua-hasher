@@ -1,6 +1,6 @@
 LUAEXE=lua
 CC=gcc -std=c99
-CFLAGS=-Wall -Wextra -O2 -I$(LUAINC) -I./src/
+CFLAGS=-Wall -Wextra -O2 -I$(LUAINC) -I./src/ -march=armv8-a
 LDFLAGS=-shared -fPIC -L$(LUALIB) -llua
 LIBNAME=hasher
 SRCS=lhasher.c src/blake2b.c src/base58.c
