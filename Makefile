@@ -1,4 +1,3 @@
-LUALIB=$(shell dirname $(LUAEXE))
 LUAEXE=lua
 CC=gcc -std=c99
 CFLAGS=-Wall -Wextra -O2 -I$(LUAINC) -I./src/
