@@ -11,30 +11,34 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
-    - name: Install Lua and LuaRocks
+    - name: Setup build environment
       run: |
-        brew install lua@5.3 luarocks
-        if [[ "${{ matrix.lua-version }}" == "5.1" ]]; then
-          brew install lua@5.1
+        mkdir build
+        cd build
+    
+    - name: Build Lua from source
+      run: |
+        if [[ "${{ matrix.lua-version }}" == "5.3" ]]; then
+          curl -R -O http://www.lua.org/ftp/lua-5.3.6.tar.gz
+          tar zxf lua-5.3.6.tar.gz
+          cd lua-5.3.6
+          make macosx test
         elif [[ "${{ matrix.lua-version }}" == "jit" ]]; then
-          brew install luajit
+          git clone https://luajit.org/git/luajit.git
+          cd luajit
+          git checkout v2.1
+          make && make install
         fi
-        luarocks install --local luarocks
 
     - name: Setup Lua environment
       run: |
-        if [[ "${{ matrix.lua-version }}" == "5.1" ]]; then
-          PREFIX=$(brew --prefix lua@5.1)
-          echo "LUAINC=$PREFIX/include/lua5.1" >> $GITHUB_ENV
-          echo "LUAEXE=lua5.1" >> $GITHUB_ENV
-        elif [[ "${{ matrix.lua-version }}" == "jit" ]]; then
-          PREFIX=$(brew --prefix luajit)
-          echo "LUAINC=$PREFIX/include/luajit-2.1" >> $GITHUB_ENV
-          echo "LUAEXE=luajit" >> $GITHUB_ENV
+        if [[ "${{ matrix.lua-version }}" == "jit" ]]; then
+          echo "LUAINC=$(pwd)/luajit/src" >> $GITHUB_ENV
+          echo "LUAEXE=$(pwd)/luajit/src/luajit" >> $GITHUB_ENV
         else
-          PREFIX=$(brew --prefix lua@5.3)
-          echo "LUAINC=$PREFIX/include/lua5.3" >> $GITHUB_ENV
-          echo "LUAEXE=lua" >> $GITHUB_ENV
+          echo "LUAINC=$(pwd)/lua-5.3.6/src" >> $GITHUB_ENV
+          # Assuming lua executable is created in src or similar accessible location
+          echo "LUAEXE=$(pwd)/lua-5.3.6/src/lua" >> $GITHUB_ENV
         fi
         
     - name: Run Make and tests
