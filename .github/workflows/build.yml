@@ -3,11 +3,42 @@ name: Run Make
 on: [push, pull_request] # Triggers the workflow on push or pull request events
 
 jobs:
-  build:
+  install-lua-dependencies:
     runs-on: macos-latest # Specifies the runner environment
-
+    strategy:
+      matrix:
+        lua-version: ['5.1', '5.3', 'jit'] # Specifies Lua versions of interest
     steps:
     - uses: actions/checkout@v3 # Checks out your repository under $GITHUB_WORKSPACE, so the job can access it
+    
+    # Install Lua and LuaRocks. Replace the following step with specific installation
+    # commands fitting each Lua version and the dependency needs of your project.
+    - name: Install Lua and LuaRocks
+      run: |
+        brew install lua@5.3 luarocks # Example for lua5.3
+        if [[ "${{ matrix.lua-version }}" == "5.1" ]]; then
+          brew install lua@5.1
+        elif [[ "${{ matrix.lua-version }}" == "jit" ]]; then
+          brew install luajit
+        fi
+        luarocks install --local luarocks # Adjust as per your Lua version
 
-    - name: Run make
-      run: make
+    - name: Setup Lua environment
+      run: |
+        if [[ "${{ matrix.lua-version }}" == "5.1" ]]; then
+          export LUAINC=/usr/local/include/lua5.1
+          export LUAEXE=lua5.1
+        elif [[ "${{ matrix.lua-version }}" == "jit" ]]; then
+          export LUAINC=/usr/local/include/luajit-2.1
+          export LUAEXE=luajit
+        else # Assuming the default case is lua 5.3, adjust as necessary
+          export LUAINC=/usr/local/include/lua5.3
+          export LUAEXE=lua
+        fi
+        
+    - name: Run Make and tests
+      run: |
+        make clean
+        make
+        make test
+    # Example end
