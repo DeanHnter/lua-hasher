@@ -20,9 +20,7 @@ jobs:
       run: |
         if [[ "${{ matrix.lua-version }}" == "5.3" ]]; then
           curl -L -R -O -v https://www.lua.org/ftp/lua-5.3.6.tar.gz
-          ls -lh  # Check file size
-          file lua-5.3.6.tar.gz  # Verify file type
-          tar zxf lua-5.3.6.tar.gz  # Removed 'v' for silent, add back if needed
+          tar zxf lua-5.3.6.tar.gz
           cd lua-5.3.6
           make macosx test
         fi
@@ -31,9 +29,7 @@ jobs:
       run: |
         if [[ "${{ matrix.lua-version }}" == "5.3" ]]; then
           echo "LUAINC=$(pwd)/lua-5.3.6/src" >> $GITHUB_ENV
-          # Assuming lua executable is created in src or similar accessible location
           echo "LUAEXE=$(pwd)/lua-5.3.6/src/lua" >> $GITHUB_ENV
-          # Calculate and export LUALIB based on LUAEXE path
           echo "LUALIB=$(dirname $(pwd)/lua-5.3.6/src/lua)" >> $GITHUB_ENV
         fi
         
@@ -43,10 +39,30 @@ jobs:
         make -e
         make test -e
 
-    - name: Publish Artifacts
+    - name: Archive Lua build artifacts
       uses: actions/upload-artifact@v3
       with:
         name: lua-build-artifacts
         path: |
           **/*.so
         if-no-files-found: error
+        
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload Release Asset
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          **/*.so
+        token: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
