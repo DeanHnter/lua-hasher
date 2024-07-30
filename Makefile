@@ -1,4 +1,4 @@
-LUAINC=/usr/local/include
+LUAINC=$(lua -e "print((string.gsub(package.config,'\\n',' '):match('^(.-) ')))")/include
 LUAEXE=lua
 CC=gcc -std=c99
 CFLAGS=-Wall -Wextra -O2 -I$(LUAINC) -I./src/
