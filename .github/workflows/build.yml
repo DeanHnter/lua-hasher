@@ -19,8 +19,10 @@ jobs:
     - name: Build Lua from source
       run: |
         if [[ "${{ matrix.lua-version }}" == "5.3" ]]; then
-          curl -R -O http://www.lua.org/ftp/lua-5.3.6.tar.gz
-          tar zxf lua-5.3.6.tar.gz
+          curl -R -O -v http://www.lua.org/ftp/lua-5.3.6.tar.gz
+          ls -lh  # Check file size
+          file lua-5.3.6.tar.gz  # Verify file type
+          tar zxfv lua-5.3.6.tar.gz  # Added 'v' for verbose
           cd lua-5.3.6
           make macosx test
         elif [[ "${{ matrix.lua-version }}" == "jit" ]]; then
