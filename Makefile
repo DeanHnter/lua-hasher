@@ -1,4 +1,4 @@
-LUAINC=$(lua -e "print((string.gsub(package.config,'\\n',' '):match('^(.-) ')))")/include
+LUAINC=$(pkg-config --cflags lua5.3) # Replace 'lua5.3' with your Lua version
 LUAEXE=lua
 CC=gcc -std=c99
 CFLAGS=-Wall -Wextra -O2 -I$(LUAINC) -I./src/
