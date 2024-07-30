@@ -29,11 +29,13 @@ jobs:
 
     - name: Setup Lua environment
       run: |
-       if [[ "${{ matrix.lua-version }}" == "5.3" ]]; then
+        if [[ "${{ matrix.lua-version }}" == "5.3" ]]; then
           echo "LUAINC=$(pwd)/lua-5.3.6/src" >> $GITHUB_ENV
           # Assuming lua executable is created in src or similar accessible location
           echo "LUAEXE=$(pwd)/lua-5.3.6/src/lua" >> $GITHUB_ENV
-       fi
+          # Calculate and export LUALIB based on LUAEXE path
+          echo "LUALIB=$(dirname $(pwd)/lua-5.3.6/src/lua)" >> $GITHUB_ENV
+        fi
         
     - name: Run Make and tests
       run: |
