@@ -1,7 +1,8 @@
+LUALIB=$(shell dirname $(LUAEXE))
 LUAEXE=lua
 CC=gcc -std=c99
 CFLAGS=-Wall -Wextra -O2 -I$(LUAINC) -I./src/
-LDFLAGS=-shared -fPIC
+LDFLAGS=-shared -fPIC -L$(LUALIB) -llua
 LIBNAME=hasher
 SRCS=lhasher.c src/blake2b.c src/base58.c
 ROCKSPEC=rocks/hasher-0.1.0-1.rockspec
