@@ -39,6 +39,6 @@ jobs:
     - name: Run Make and tests
       run: |
         make clean
-        make
-        make test
+        make -e
+        make test -e
     # Example end
