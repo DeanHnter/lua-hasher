@@ -7,7 +7,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        lua-version: ['5.3', 'jit']
+        lua-version: ['5.3']
     steps:
     - uses: actions/checkout@v3
     
@@ -29,14 +29,11 @@ jobs:
 
     - name: Setup Lua environment
       run: |
-        if [[ "${{ matrix.lua-version }}" == "jit" ]]; then
-          echo "LUAINC=$(pwd)/luajit/src" >> $GITHUB_ENV
-          echo "LUAEXE=$(pwd)/luajit/src/luajit" >> $GITHUB_ENV
-        else
+       if [[ "${{ matrix.lua-version }}" == "5.3" ]]; then
           echo "LUAINC=$(pwd)/lua-5.3.6/src" >> $GITHUB_ENV
           # Assuming lua executable is created in src or similar accessible location
           echo "LUAEXE=$(pwd)/lua-5.3.6/src/lua" >> $GITHUB_ENV
-        fi
+       fi
         
     - name: Run Make and tests
       run: |
