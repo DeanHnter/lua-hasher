@@ -10,11 +10,9 @@ typedef struct __attribute__((aligned(8))) {
     size_t   hash_size;
 } blake2b_ctx;
 
-static void blake2b_init(blake2b_ctx *ctx, size_t hash_size,
-                         const uint8_t *key, size_t key_size);
+static void blake2b_init(blake2b_ctx *ctx, size_t hash_size,const uint8_t *key, size_t key_size);
 
-static void blake2b_update(blake2b_ctx *ctx,
-                           const uint8_t *message, size_t message_size);
+static void blake2b_update(blake2b_ctx *ctx,const uint8_t *message, size_t message_size);
 
 static void blake2b_final(blake2b_ctx *ctx, uint8_t *hash);
 
@@ -62,11 +60,6 @@ static void blake2b_set_input(blake2b_ctx *ctx, uint8_t input)
     size_t byte = ctx->input_idx % 8;
     ctx->input[word] |= (uint64_t)input << (byte * 8);
     ctx->input_idx++;
-}
-
-static void blake2b_compress(blake2b_ctx *ctx, int is_last_block)
-{
-    // ... (compress function remains unchanged)
 }
 
 static void blake2b_reset_input(blake2b_ctx *ctx)
